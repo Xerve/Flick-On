@@ -1,0 +1,62 @@
+<html>
+  <head>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+    <script src="//cdn.jsdelivr.net/sparkjs/0.2.0/spark.min.js"></script>
+  </head>
+  <body>
+    <div id="login">
+      <div class="container">
+        <div id="spark-login"/>
+      </div>
+    </div>
+    <div id="home">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="panel panel-primary">
+              <div class="panel-heading">
+                <h4 class="panel-title">
+                  Your Flick-On's
+                  <i class="fa fa-lightbulb-o pull-right"></i>
+                </h4>
+              </div>
+              <div class="panel-body" id="devices-loading">
+                <p><i class="fa fa-lg fa-spinner fa-spin"></i> Fetching data...</p>
+              </div>
+              <ul class="list-group" id="devices"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>  
+  </body>
+  <script>
+    $('#home').hide();
+    sparkLogin(function(data) {
+      $('#spark-login').hide();
+      $('#home').show();
+      var accessToken = data.access_token;
+      var devices = spark.listDevices();
+      devices.then(
+        function(devices) {
+          console.log(devices);
+          $('#devices-loading').hide();
+          for (var i = 0; i < devices.length; i++) {
+            $('#devices').append('<li class="list-group-item" id="'+devices[i].id+'"><p>'+devices[i].name+' ('+devices[i].id+')</p></li>');
+            if (devices[i].connected === false) {
+              $('#'+devices[i].id).addClass('list-group-item-warning');
+              $('#'+devices[i].id+' p').append('<i class="fa fa-exclamation-triangle pull-right" id="help-'+devices[i].id+'" data-toggle="tooltip" data-placement="right" title="This device is not connected!"></i>');
+              $('#help-'+devices[i].id).tooltip();
+            }
+          }
+        },
+        function(err) {
+          $('#devices-loading').html('<p><i class="fa fa-lg fa-frown-o"></i>Error: '+err+'</p>');
+        }
+      );
+    });
+ </script>
+</html>
