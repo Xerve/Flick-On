@@ -7,6 +7,15 @@
     <script src="//cdn.jsdelivr.net/sparkjs/0.2.0/spark.min.js"></script>
   </head>
   <body>
+    <nav class="navbar navbar-default navbar-inverse navbar-fixed-top" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">
+            Flick-On
+          </a>
+        </div>
+      </div>
+    </nav>
     <div id="login">
       <div class="container">
         <div id="spark-login"/>
@@ -29,34 +38,59 @@
               <ul class="list-group" id="devices"/>
             </div>
           </div>
+          <div class="col-md-8">
+            <div id="alerts"/>
+          </div>
         </div>
       </div>
     </div>  
   </body>
-  <script>
-    $('#home').hide();
-    sparkLogin(function(data) {
-      $('#spark-login').hide();
-      $('#home').show();
-      var accessToken = data.access_token;
-      var devices = spark.listDevices();
-      devices.then(
-        function(devices) {
-          console.log(devices);
-          $('#devices-loading').hide();
-          for (var i = 0; i < devices.length; i++) {
-            $('#devices').append('<li class="list-group-item" id="'+devices[i].id+'"><p>'+devices[i].name+' ('+devices[i].id+')</p></li>');
-            if (devices[i].connected === false) {
-              $('#'+devices[i].id).addClass('list-group-item-warning');
-              $('#'+devices[i].id+' p').append('<i class="fa fa-exclamation-triangle pull-right" id="help-'+devices[i].id+'" data-toggle="tooltip" data-placement="right" title="This device is not connected!"></i>');
-              $('#help-'+devices[i].id).tooltip();
-            }
-          }
-        },
-        function(err) {
-          $('#devices-loading').html('<p><i class="fa fa-lg fa-frown-o"></i>Error: '+err+'</p>');
-        }
-      );
-    });
- </script>
+  <script type="text/coffeescript">
+    $('#home').hide()
+    sparkLogin (data) ->
+      $('#spark-login').hide()
+      $('#home').show()
+      accessTokan = data.access_token
+      devices = spark.listDevices()
+      devices.then (devices) ->
+        $('#devices-loading').hide()
+        for device in devices
+          $('#devices').append "<li class=\"list-group-item\" id=\"#{device.id}\"><p>#{device.name} (#{device.id})</p></li>"
+          if not device.connected
+            $("##{device.id}").addClass 'list-group-item-warning'
+            $("##{device.id} p").append "<i class=\"fa fa-exclamation-triangle pull-right\" id=\"help-#{device.id}\" data-toggle=\"tooltip\" data-placement=\"right\" title=\"This device is not connected!\"></i>"
+            $("#help-#{device.id}").tooltip()
+          else
+            device.getVariable 'on', (err, data) ->
+              $("##{device.id} p").append "<button class=\"btn btn-xs btn-primary pull-right\" id=\"button-#{device.id}\"data-state=\"#{data.result}\">Turn #{if data.result is 1 then 'on' else 'off'}</button>"
+              $("#button-#{device.id}").click -> do (device) ->
+                if $("#button-#{device.id}").data('state') is 1
+                  spark.callFunction device.id, 'turn', 'off', (err, data) ->
+                    if err
+                      $('#alerts').prepend '<div class="alert alert-warning alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Error turning '+device.name+' on: '+err+'</div>'
+                    else
+                      $('#alerts').prepend '<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>'+device.name+' turned on!</div>'
+                      $("#button-#{device.id}").data('state', 0).html('Turn off');
+                else 
+                  spark.callFunction device.id, 'turn', 'on',  (err, data) ->
+                    if err
+                      $('#alerts'.prepend '') '<div class="alert alert-warning alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Error turning '+device.name+' off: '+err+'</div>'
+                    else 
+                      $('#alerts').prepend '<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>'+device.name+' turned off!</div>'
+                      $("#button-#{device.id}").data('state', 1).html 'Turn on'
+                      
+            device.onEvent 'turn on', (data) ->
+              $("#button-#{device.id}").data('state', 1).html 'Turn on'
+              
+            device.onEvent 'turn off', (data) ->
+              $("#button-#{device.id}").data('state', 0).html 'Turn off'
+              
+  </script>
+  <style type="text/less">
+    body { 
+      padding-top: 70px; 
+    }
+  </style>
+  <script src="//cdn.jsdelivr.net/coffeescript/1.7.1/coffee-script.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/2.0.0/less.min.js"></script>
 </html>
