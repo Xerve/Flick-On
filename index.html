@@ -2,9 +2,11 @@
   <head>
     <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" rel="stylesheet">
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href='http://fonts.googleapis.com/css?family=Raleway:400' rel='stylesheet' type='text/css'>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
-    <script src="//cdn.jsdelivr.net/sparkjs/0.2.0/spark.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.8.4/moment.min.js"></script>
+    <script src="//cdn.jsdelivr.net/sparkjs/0.2.3/spark.min.js"></script>
   </head>
   <body>
     <nav class="navbar navbar-default navbar-inverse navbar-fixed-top" role="navigation">
@@ -46,11 +48,13 @@
     </div>  
   </body>
   <script type="text/coffeescript">
+    Notification = (type, content) ->
+      $('#alerts').prepend "<div class=\"alert alert-#{type} alert-dismissible\" role=\"alert\"><button type=\"button\" class=\"close\" data-dismiss=\"alert\"><span aria-hidden=\"true\">&times;</span><span class=\"sr-only\">Close</span></button>#{content}<span class=\"pull-right\">#{moment().format('MMMM Do YYYY, h:mm:ss a')}</span></div>"
+    
     $('#home').hide()
     sparkLogin (data) ->
       $('#spark-login').hide()
       $('#home').show()
-      accessTokan = data.access_token
       devices = spark.listDevices()
       devices.then (devices) ->
         $('#devices-loading').hide()
@@ -62,35 +66,56 @@
             $("#help-#{device.id}").tooltip()
           else
             device.getVariable 'on', (err, data) ->
-              $("##{device.id} p").append "<button class=\"btn btn-xs btn-primary pull-right\" id=\"button-#{device.id}\"data-state=\"#{data.result}\">Turn #{if data.result is 1 then 'on' else 'off'}</button>"
+              $("##{device.id} p").append "<button class=\"btn btn-xs btn-primary pull-right\" id=\"button-#{device.id}\"data-state=\"#{data.result}\">Turn #{if data.result is 1 then 'off' else 'on'}</button>"
               $("#button-#{device.id}").click -> do (device) ->
                 if $("#button-#{device.id}").data('state') is 1
                   spark.callFunction device.id, 'turn', 'off', (err, data) ->
                     if err
-                      $('#alerts').prepend '<div class="alert alert-warning alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Error turning '+device.name+' on: '+err+'</div>'
+                      Notification 'warning', "Error turning off #{device.name}: #{err}"
                     else
-                      $('#alerts').prepend '<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>'+device.name+' turned on!</div>'
-                      $("#button-#{device.id}").data('state', 0).html('Turn off');
+                      Notification 'success', "#{device.name} turned off!"
+                      $("#button-#{device.id}").data('state', 0).html 'Turn on'
+                  
                 else 
                   spark.callFunction device.id, 'turn', 'on',  (err, data) ->
                     if err
-                      $('#alerts'.prepend '') '<div class="alert alert-warning alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>Error turning '+device.name+' off: '+err+'</div>'
-                    else 
-                      $('#alerts').prepend '<div class="alert alert-success alert-dismissible" role="alert"><button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>'+device.name+' turned off!</div>'
-                      $("#button-#{device.id}").data('state', 1).html 'Turn on'
-                      
-            device.onEvent 'turn on', (data) ->
-              $("#button-#{device.id}").data('state', 1).html 'Turn on'
-              
-            device.onEvent 'turn off', (data) ->
-              $("#button-#{device.id}").data('state', 0).html 'Turn off'
-              
+                      Notification 'warning', "Error turning on #{device.name}: #{err}"
+                    else
+                      Notification 'success', "#{device.name} turned on!"
+                      $("#button-#{device.id}").data('state', 1).html 'Turn off'
+            
+            source = new EventSource "https://api.spark.io/v1/devices/#{device.id}/events?access_token=#{data.access_token}"
+            source.addEventListener 'turned on', (e) ->
+              $("#button-#{device.id}").data('state', 1).html 'Turn off'
+              Notification 'info', "#{device.name} was turned on remotely!"
+            source.addEventListener 'turned off', (e) ->
+              $("#button-#{device.id}").data('state', 0).html 'Turn on'
+              Notification 'info', "#{device.name} was turned off remotely!"
+            source.addEventListener 'direction changed', (e) ->
+              Notification 'info', "#{device.name}'s on direction was changed!"
+              if $("#button-#{device.id}").data('state') is 1
+                $("#button-#{device.id}").data('state', 0).html 'Turn on'
+              else
+                $("#button-#{device.id}").data('state', 1).html 'Turn off'
+                
   </script>
+  
   <style type="text/less">
     body { 
       padding-top: 70px; 
+      font-family: 'Raleway', sans-serif;
+      
+      #alerts {
+        .alert:nth-child(n+6) {
+          display: none;
+        }
+      }
+    }
+    .spark-login-button, .spark-login-input, .spark-login-modal, .spark-login-error {
+      font-family: 'Raleway', sans-serif;
     }
   </style>
+  
   <script src="//cdn.jsdelivr.net/coffeescript/1.7.1/coffee-script.min.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/2.0.0/less.min.js"></script>
 </html>
