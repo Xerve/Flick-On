@@ -1,4 +1,4 @@
 Flick-On-Server
 ===============
 
-IED Project's Server
+The Flick-on is a stand-alone Internet based smart light switch. The whole device is controlled through a website. The flick on can also be controlled through a physical button which is present on the devices faceplate. This product would be very useful to someone who does not have much experience working with electrical wires, or is not comfortable removing the panels of his or her light switches. The device is simple to install taking approximately one minute. A physical button located on the device and a digital input via the device's server can actuate the light switch help facilitate the use of the device. These specifications came from a customer survey which was sent out over the Internet. Then, research was done on existing products to ensure the Flick-On would be superior.  Then, the team selected the best materials and components for the job. After researching the best solution to the problem the flick-on was created at a cost on only about \$30.
